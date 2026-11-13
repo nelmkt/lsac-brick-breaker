@@ -5,7 +5,8 @@
 /* Mobile arcade presentation: keep the desktop design and game intact. */
 @media (max-width: 600px) {
   body { display:block; min-height:100svh; }
-  .wrap { width: min(100% - 20px, 480px); margin: 20px auto; padding: 0; }
+  .wrap { width: min(100% - 20px, 480px); margin: 55px auto 20px; padding: 0; }
+
   .arcade-frame { padding: 10px; border: 2px solid var(--cyan); border-radius: 17px; box-shadow: 0 0 10px var(--cyan), 0 0 22px var(--blue); }
   .frame-top, .frame-bottom { font-family:'VT323',monospace; font-size:clamp(13px,3.5vw,18px); padding: 7px 4px; letter-spacing:0; }
   .frame-top span:last-child { white-space:nowrap; }
@@ -13,18 +14,19 @@
   .hud { font-family:'VT323',monospace; font-size:clamp(16px,4.6vw,23px); padding: 10px 2px; }
   .stage { width:100%; aspect-ratio:4/3; }
   canvas { width:100%; height:100%; }
-  
-  /* The entry screen becomes a centered, scrollable arcade dialog on small screens. */
-  .overlay:not(.hidden) { position:fixed; inset:0; z-index:10; padding:22px 16px; background:rgba(2,5,26,.88); backdrop-filter:blur(6px); overflow-y:auto; display:flex; justify-content:safe center; align-items:center; gap:12px; }
-  .overlay:not(.hidden)::before { content:''; position:fixed; inset:12px; border:2px solid var(--cyan); border-radius:18px; box-shadow:0 0 12px var(--cyan),inset 0 0 15px #003cff55; pointer-events:none; }
+
+  /* Compact entry panel; scroll internally when the mobile viewport is short. */
+  .overlay:not(.hidden) { position:fixed; inset:16px 12px; z-index:10; width:min(420px,calc(100% - 24px)); height:max-content; max-height:calc(100svh - 32px); max-height:calc(100dvh - 32px); margin:auto; padding:24px 16px; border:2px solid var(--cyan); border-radius:18px; box-shadow:0 0 12px var(--cyan),inset 0 0 15px #003cff55; background:rgba(2,5,26,.94); backdrop-filter:blur(6px); overflow-y:auto; display:flex; justify-content:safe center; align-items:center; gap:10px; }
+  .overlay > * { flex-shrink:0; max-width:100%; }
   .overlay .club-tag { font-size:clamp(16px,4.5vw,23px); }
-  .overlay .pixel-hearts { font-size:clamp(27px,9vw,42px); }
-  .overlay h1 { font-size:clamp(20px,5.5vw,32px); line-height:1.7; }
+  .overlay .pixel-hearts { font-size:clamp(27px,9vw,42px); line-height:1; }
+  .overlay h1 { font-size:clamp(20px,5.5vw,32px); line-height:1.5; }
   .overlay #subtitle { font-size:clamp(18px,4.7vw,23px); max-width:340px; }
   .name-label { font-size:23px; }
-  #playerName { width:min(320px,86vw); font-size:25px; padding:11px; border:2px solid var(--cyan); background:#020925; color:white; }
-  .overlay button { width:min(320px,86vw); min-height:50px; padding:13px 10px; font-size:clamp(10px,2.8vw,13px); }
-  .overlay .hint { font-size:clamp(14px,3.6vw,18px); max-width:320px; }
+  #playerName { width:min(320px,100%); font-size:25px; padding:11px; border:2px solid var(--cyan); background:#020925; color:white; }
+  .overlay button { width:min(320px,100%); min-height:46px; padding:13px 10px; font-size:clamp(10px,2.8vw,13px); }
+  .overlay .hint { font-size:clamp(14px,3.6vw,18px); max-width:320px; margin-top:4px; }
+
   .leaderboard-screen:not(.hidden) { position:fixed; inset:0; z-index:20; padding:16px; background:rgba(2,5,26,.91); backdrop-filter:blur(5px); overflow-y:auto; display:flex; justify-content:center; align-items:center; }
   .leaderboard-panel { width:min(100%,480px); max-height:min(85svh,700px); padding:22px 12px; border:2px solid var(--cyan); border-radius:18px; box-shadow:0 0 18px #00cfff8a; }
   .leaderboard-panel h2 { font-size:clamp(18px,5vw,25px); margin:10px 0; }
