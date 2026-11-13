@@ -2,6 +2,7 @@ var canvas = document.getElementById("myCanvas");
 var ctx = canvas.getContext("2d");
 var scoreEl = document.getElementById("score");
 var livesEl = document.getElementById("lives");
+var levelEl = document.getElementById("level");
 var overlay = document.getElementById("overlay");
 var titleEl = document.getElementById("title");
 var subtitleEl = document.getElementById("subtitle");
@@ -28,6 +29,42 @@ var topics = [
 ];
 var bug = { name: "Bug", label: "BUG", color: "#e5484d", points: 2 };
 var bugChance = 0.2;
+
+var tips = {
+    Cloud: [
+        "Cloud means renting computers on demand instead of buying them.",
+        "Microsoft Learn has free Azure Fundamentals (AZ-900) learning paths.",
+        "Serverless means you write the code and the cloud runs the servers."
+    ],
+    Code: [
+        "Git tracks every change, so commit early and often.",
+        "VS Code is free and works with almost any language.",
+        "Reading other people's code is a skill too. Practice it."
+    ],
+    Data: [
+        "SQL is still one of the most in-demand skills.",
+        "Clean data beats a fancy model almost every time.",
+        "Power BI turns spreadsheets into dashboards."
+    ],
+    AI: [
+        "A model is only as good as the data it learned from.",
+        "Prompting is a skill: be clear and give examples.",
+        "Always check AI output, it can be confidently wrong."
+    ],
+    Security: [
+        "Turn on two-factor authentication everywhere you can.",
+        "Never commit passwords or API keys to GitHub.",
+        "Least privilege: only give access to what's needed."
+    ],
+    Bug: [
+        "Bug squashed! Reading the error message is step one of debugging.",
+        "Bug squashed! Rubber duck debugging: explain your code out loud."
+    ]
+};
+var tip = "";
+var tipUntil = 0;
+var level = 1;
+var baseSpeed = 2.5;
 var brickWidth = 76;
 var brickHeight = 22;
 var brickPadding = 10;
@@ -58,14 +95,34 @@ function buildBricks() {
 function resetBall() {
     x = canvas.width/2;
     y = canvas.height-30;
-    dx = 2.5;
-    dy = -2.5;
+    var speed = baseSpeed + (level - 1) * 0.5;
+    dx = speed;
+    dy = -speed;
     paddleX = (canvas.width-paddleWidth)/2;
 }
 
 function updateHud() {
     scoreEl.textContent = score;
     livesEl.textContent = lives;
+    levelEl.textContent = level;
+}
+
+function showTip(text) {
+    tip = text;
+    tipUntil = performance.now() + 2500;
+}
+
+function randomTip(topic) {
+    var list = tips[topic.name];
+    return list[Math.floor(Math.random() * list.length)];
+}
+
+function nextLevel() {
+    level++;
+    buildBricks();
+    resetBall();
+    updateHud();
+    showTip("Level " + level + "! The ball is getting faster.");
 }
 
 document.addEventListener("keydown", keyDownHandler, false);
@@ -100,6 +157,8 @@ function mouseMoveHandler(e) {
 function startGame() {
     score = 0;
     lives = 3;
+    level = 1;
+    tip = "";
     buildBricks();
     resetBall();
     updateHud();
@@ -128,8 +187,10 @@ function collisionDetection() {
                     b.status = 0;
                     score += b.topic.points;
                     updateHud();
+                    showTip(randomTip(b.topic));
                     if(bricksLeft() == 0) {
-                        endGame("You win!", "You broke every brick with " + lives + " lives left.");
+                        nextLevel();
+                        return;
                     }
                 }
             }
@@ -200,12 +261,28 @@ function drawBricks() {
     }
 }
 
+function drawTip() {
+    if(!tip || performance.now() > tipUntil) return;
+    var boxY = canvas.height - 90;
+    ctx.beginPath();
+    ctx.roundRect(20, boxY, canvas.width - 40, 40, 8);
+    ctx.fillStyle = "rgba(0, 120, 212, 0.85)";
+    ctx.fill();
+    ctx.closePath();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "13px Segoe UI, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(tip, canvas.width/2, boxY + 20, canvas.width - 60);
+}
+
 function draw() {
     if(!running) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawBricks();
     drawBall();
     drawPaddle();
+    drawTip();
     collisionDetection();
     if(!running) return;
 
@@ -223,7 +300,7 @@ function draw() {
             lives--;
             updateHud();
             if(!lives) {
-                endGame("Game over", "You scored " + score + ".");
+                endGame("Game over", "You scored " + score + " and reached level " + level + ".");
                 return;
             }
             resetBall();
