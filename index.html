@@ -1,38 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Bug Breaker | LSAC</title>
-    <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bug Breaker | LSAC Arcade</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
 <main class="wrap">
-    <header class="hud">
-        <span>Score: <b id="score">0</b></span>
-        <span>Level: <b id="level">1</b></span>
-        <span>Lives: <b id="lives">3</b></span>
-    </header>
-
+  <div class="arcade-frame">
+    <div class="frame-top"><span>◆ LSAC ARCADE</span><span class="pixel-lights">▰ ▰ ▰ ▰ ▰</span><span>01 / BUG BREAKER</span></div>
+    <header class="hud"><span>SCORE <b id="score">0</b></span><span>LEVEL <b id="level">1</b></span><span>LIVES <b id="lives">3</b></span></header>
     <div class="stage">
-        <canvas id="myCanvas" width="480" height="360"></canvas>
-
-        <div id="overlay" class="overlay">
-            <p class="club-tag">LSAC | Learn Student Ambassadors Club</p>
-            <h1 id="title">Bug Breaker</h1>
-            <p id="subtitle">Smash the bricks, squash the bugs, and chase the high score.</p>
-            <ul class="features">
-                <li>Combos</li>
-                <li>Power-ups</li>
-                <li>Levels</li>
-            </ul>
-            <button id="start">Play</button>
-            <p class="hint">Move with the mouse or arrow keys. Click or press Space to launch.</p>
+      <canvas id="myCanvas" width="480" height="360" aria-label="Bug Breaker game canvas"></canvas>
+      <div id="overlay" class="overlay">
+        <p class="club-tag">LSAC • INSERT COIN TO PLAY</p>
+        <div class="pixel-hearts" aria-hidden="true">♥ ♥ ♥</div>
+        <h1 id="title">BUG BREAKER</h1>
+        <p id="subtitle">SMASH BRICKS. SQUASH BUGS. BE THE BEST.</p>
+        <label class="name-label" for="playerName">PLAYER NAME</label>
+        <input id="playerName" type="text" maxlength="18" placeholder="ENTER YOUR NAME" autocomplete="nickname" spellcheck="false" />
+        <p id="nameError" class="error" role="alert" hidden>ENTER YOUR NAME TO PLAY</p>
+        <button id="start" class="arcade-button" type="button">▶ START GAME</button>
+        <button id="viewLeaderboard" class="secondary-button" type="button">★ TOP SCORES</button>
+        <p class="hint">MOVE: MOUSE / ← → &nbsp; • &nbsp; LAUNCH: SPACE / CLICK</p>
+      </div>
+      <section id="leaderboardScreen" class="leaderboard-screen hidden" aria-label="Global leaderboard" aria-modal="true" role="dialog">
+        <div class="leaderboard-panel">
+          <p class="club-tag">★ LSAC ARCADE ★</p>
+          <h2>TOP SCORES</h2>
+          <p class="leaderboard-subtitle">LOCAL PREVIEW • GLOBAL COMING SOON</p>
+          <div class="score-table-wrap"><table class="score-table"><thead><tr><th>RANK</th><th>NAME</th><th>SCORE</th><th>LEVEL</th></tr></thead><tbody id="leaderboardBody"><tr><td colspan="4">LOADING...</td></tr></tbody></table></div>
+          <p id="leaderboardStatus" class="board-status" aria-live="polite"></p>
+          <button id="backToGame" class="secondary-button" type="button">← BACK TO GAME</button>
         </div>
+      </section>
     </div>
+    <div class="frame-bottom"><span>◀ ◀ ◀</span><span>READY PLAYER ONE</span><span>▶ ▶ ▶</span></div>
+  </div>
 </main>
-
 <script src="game.js"></script>
 </body>
 </html>
