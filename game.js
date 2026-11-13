@@ -1,4 +1,4 @@
-
+// Leaderboard UI: local preview until a shared database is connected.
 (function () {
     "use strict";
     var screen = document.getElementById("leaderboardScreen");
@@ -7,6 +7,9 @@
     var back = document.getElementById("backToGame");
     var storageKey = "lsac_bug_breaker_preview_scores";
     var previousFocus = null;
+    var overlayWasVisible = false;
+    // Keep the leaderboard outside the game stage to avoid mobile stacking/overflow issues.
+    document.body.appendChild(screen);
 
     function getScores() {
         try {
@@ -54,12 +57,15 @@
     }
     function show() {
         previousFocus = document.activeElement;
+        overlayWasVisible = !document.getElementById("overlay").classList.contains("hidden");
+        if (overlayWasVisible) document.getElementById("overlay").classList.add("hidden");
         screen.classList.remove("hidden");
         load();
         back.focus();
     }
     function hide() {
         screen.classList.add("hidden");
+        if (overlayWasVisible) document.getElementById("overlay").classList.remove("hidden");
         if (previousFocus && previousFocus.focus) previousFocus.focus();
     }
     document.getElementById("viewLeaderboard").addEventListener("click", show);
