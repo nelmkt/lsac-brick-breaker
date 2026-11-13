@@ -5,7 +5,7 @@ a game for **LSAC (Learn Student Ambassadors Club)** events.
 
 | # | Part | Owner | Status |
 |---|------|-------|--------|
-| 1 | Club branding and start screen | Nelly | todo |
+| 1 | Club branding and start screen | Nelly | done |
 | 2 | Tech topic bricks and bugs | Nelly | todo |
 | 3 | Tech tips and levels | Nelly | todo |
 | 4 | Club leaderboard | friend | todo |
