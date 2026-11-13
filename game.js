@@ -1,3 +1,82 @@
+// Leaderboard UI: local preview until a shared database is connected.
+(function () {
+    "use strict";
+    var screen = document.getElementById("leaderboardScreen");
+    var body = document.getElementById("leaderboardBody");
+    var status = document.getElementById("leaderboardStatus");
+    var back = document.getElementById("backToGame");
+    var storageKey = "lsac_bug_breaker_preview_scores";
+    var previousFocus = null;
+    var overlayWasVisible = false;
+    // Keep the leaderboard outside the game stage to avoid mobile stacking/overflow issues.
+    document.body.appendChild(screen);
+
+    function getScores() {
+        try {
+            var data = JSON.parse(localStorage.getItem(storageKey) || "[]");
+            return Array.isArray(data) ? data : [];
+        } catch (error) { return []; }
+    }
+    function showMessageRow(message) {
+        body.replaceChildren();
+        var row = document.createElement("tr");
+        var cell = document.createElement("td");
+        cell.colSpan = 4;
+        cell.textContent = message;
+        row.appendChild(cell);
+        body.appendChild(row);
+    }
+    function load() {
+        var scores = getScores().sort(function(a,b) {
+            return b.score - a.score || b.level - a.level;
+        }).slice(0, 10);
+        body.replaceChildren();
+        if (!scores.length) showMessageRow("NO SCORES YET — BE FIRST!");
+        scores.forEach(function(entry, index) {
+            var row = document.createElement("tr");
+            [index + 1, entry.player_name, entry.score, entry.level].forEach(function(value) {
+                var cell = document.createElement("td");
+                cell.textContent = String(value);
+                row.appendChild(cell);
+            });
+            body.appendChild(row);
+        });
+        status.textContent = "PREVIEW ONLY — SCORES SAVED ON THIS DEVICE";
+    }
+    function submit(name, score, level) {
+        try {
+            var scores = getScores();
+            scores.push({player_name:name, score:score, level:level});
+            localStorage.setItem(storageKey, JSON.stringify(scores.sort(function(a,b) {
+                return b.score - a.score || b.level - a.level;
+            }).slice(0, 50)));
+            return Promise.resolve({ok:true});
+        } catch (error) {
+            return Promise.resolve({ok:false, reason:"Local preview storage unavailable."});
+        }
+    }
+    function show() {
+        previousFocus = document.activeElement;
+        overlayWasVisible = !document.getElementById("overlay").classList.contains("hidden");
+        if (overlayWasVisible) document.getElementById("overlay").classList.add("hidden");
+        screen.classList.remove("hidden");
+        load();
+        back.focus();
+    }
+    function hide() {
+        screen.classList.add("hidden");
+        if (overlayWasVisible) document.getElementById("overlay").classList.remove("hidden");
+        if (previousFocus && previousFocus.focus) previousFocus.focus();
+    }
+    document.getElementById("viewLeaderboard").addEventListener("click", show);
+    back.addEventListener("click", hide);
+    screen.addEventListener("keydown", function(event) {
+        if (event.key === "Escape") hide();
+        if (event.key === "Tab") { event.preventDefault(); back.focus(); }
+    });
+    window.BugLeaderboard = {show:show, hide:hide, submit:submit, load:load};
+})();
+
 var canvas = document.getElementById("myCanvas");
 var ctx = canvas.getContext("2d");
 var scoreEl = document.getElementById("score");
@@ -7,6 +86,9 @@ var overlay = document.getElementById("overlay");
 var titleEl = document.getElementById("title");
 var subtitleEl = document.getElementById("subtitle");
 var startBtn = document.getElementById("start");
+var playerNameEl = document.getElementById("playerName");
+var nameErrorEl = document.getElementById("nameError");
+var currentPlayerName = "";
 
 var mainColor = "#0078d4";
 var glowColor = "#50e6ff";
@@ -61,6 +143,8 @@ document.addEventListener("keyup", keyUpHandler);
 document.addEventListener("mousemove", mouseMoveHandler);
 canvas.addEventListener("click", launch);
 startBtn.addEventListener("click", startGame);
+playerNameEl.addEventListener("keydown", function(e) { if(e.key === "Enter") startGame(); });
+playerNameEl.addEventListener("input", function() { nameErrorEl.hidden = true; });
 
 function keyDownHandler(e) {
     if(e.code == "ArrowRight") rightPressed = true;
@@ -147,6 +231,10 @@ function showMessage(text) {
 }
 
 function startGame() {
+    var name = playerNameEl.value.trim().replace(/\s+/g, " ");
+    if(!name || name.length > 18) { nameErrorEl.hidden = false; playerNameEl.focus(); return; }
+    currentPlayerName = name;
+    nameErrorEl.hidden = true;
     score = 0;
     lives = 3;
     level = 1;
@@ -171,10 +259,18 @@ function nextLevel() {
 
 function endGame() {
     running = false;
-    titleEl.textContent = "Game over";
+    var finalScore = score;
+    var finalLevel = level;
+    var finalName = currentPlayerName;
+    titleEl.textContent = "GAME OVER";
     subtitleEl.textContent = "You scored " + score + " and reached level " + level + ". Can you beat it?";
-    startBtn.textContent = "Play again";
+    startBtn.textContent = "▶ PLAY AGAIN";
     overlay.classList.remove("hidden");
+    if(window.BugLeaderboard) {
+        window.BugLeaderboard.submit(finalName, finalScore, finalLevel).then(function(result) {
+            if(!result.ok) console.warn("Score not saved:", result.reason);
+        });
+    }
 }
 
 function bricksLeft() {
