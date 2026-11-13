@@ -90,10 +90,3 @@ button {
 button:hover { filter: brightness(1.1); }
 
 .hint { font-size: 14px; }
-
-.footer {
-  padding: 12px 4px;
-  font-size: 13px;
-  text-align: center;
-  color: var(--muted);
-}

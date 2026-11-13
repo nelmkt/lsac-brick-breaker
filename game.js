@@ -18,7 +18,16 @@ var paddleX;
 var rightPressed = false;
 var leftPressed = false;
 var brickRowCount = 5;
-var brickColumnCount = 3;
+var brickColumnCount = 5;
+var topics = [
+    { name: "Security", label: "SEC",   color: "#0f9d9a", points: 3 },
+    { name: "AI",       label: "AI",    color: "#c27c0e", points: 2 },
+    { name: "Data",     label: "DATA",  color: "#00a36c", points: 2 },
+    { name: "Code",     label: "CODE",  color: "#8661c5", points: 1 },
+    { name: "Cloud",    label: "CLOUD", color: "#0078d4", points: 1 }
+];
+var bug = { name: "Bug", label: "BUG", color: "#e5484d", points: 2 };
+var bugChance = 0.2;
 var brickWidth = 76;
 var brickHeight = 22;
 var brickPadding = 10;
@@ -34,7 +43,14 @@ function buildBricks() {
     for(var c=0; c<brickColumnCount; c++) {
         bricks[c] = [];
         for(var r=0; r<brickRowCount; r++) {
-            bricks[c][r] = { x: 0, y: 0, status: 1 };
+            var isBug = Math.random() < bugChance;
+            bricks[c][r] = {
+                x: 0,
+                y: 0,
+                status: 1,
+                topic: isBug ? bug : topics[c],
+                hits: isBug ? 2 : 1
+            };
         }
     }
 }
@@ -107,16 +123,28 @@ function collisionDetection() {
             if(b.status == 1) {
                 if(x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
                     dy = -dy;
+                    b.hits--;
+                    if(b.hits > 0) continue;
                     b.status = 0;
-                    score++;
+                    score += b.topic.points;
                     updateHud();
-                    if(score == brickRowCount*brickColumnCount) {
+                    if(bricksLeft() == 0) {
                         endGame("You win!", "You broke every brick with " + lives + " lives left.");
                     }
                 }
             }
         }
     }
+}
+
+function bricksLeft() {
+    var left = 0;
+    for(var c=0; c<brickColumnCount; c++) {
+        for(var r=0; r<brickRowCount; r++) {
+            if(bricks[c][r].status == 1) left++;
+        }
+    }
+    return left;
 }
 
 function drawBall() {
@@ -147,11 +175,26 @@ function drawBricks() {
                 var brickY = (c*(brickHeight+brickPadding))+brickOffsetTop;
                 bricks[c][r].x = brickX;
                 bricks[c][r].y = brickY;
+                var b = bricks[c][r];
                 ctx.beginPath();
                 ctx.roundRect(brickX, brickY, brickWidth, brickHeight, 5);
-                ctx.fillStyle = mainColor;
+                ctx.fillStyle = b.topic.color;
+                ctx.globalAlpha = b.hits > 1 ? 1 : 0.85;
                 ctx.fill();
+                ctx.globalAlpha = 1;
+                if(b.topic == bug && b.hits == 1) {
+                    ctx.strokeStyle = "#ffd1d1";
+                    ctx.setLineDash([4, 3]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
                 ctx.closePath();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.font = "bold 11px Segoe UI, sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.fillText(b.topic.label, brickX + brickWidth/2, brickY + brickHeight/2 + 1);
             }
         }
     }
