@@ -52,18 +52,56 @@ canvas {
   gap: 12px;
   padding: 24px;
   text-align: center;
-  background: rgba(5, 12, 26, 0.75);
+  background: rgba(5, 12, 26, 0.6);
+  backdrop-filter: blur(3px);
   border-radius: 12px;
 }
 
 .overlay.hidden { display: none; }
 
 .overlay h1 {
-  font-size: 40px;
-  background: linear-gradient(90deg, var(--accent-2), #fff);
+  font-size: 44px;
+  background: linear-gradient(90deg, var(--accent-2), #fff, var(--accent-2));
+  background-size: 200% auto;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  animation: shine 3s linear infinite;
+}
+
+.features {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+}
+
+.features li {
+  padding: 4px 12px;
+  font-size: 13px;
+  border: 1px solid rgba(80, 230, 255, 0.4);
+  border-radius: 999px;
+  color: var(--accent-2);
+}
+
+@keyframes shine {
+  to { background-position: 200% center; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(80, 230, 255, 0.5); }
+  50% { transform: scale(1.06); box-shadow: 0 0 0 10px rgba(80, 230, 255, 0); }
+}
+
+@keyframes bump {
+  50% { transform: scale(1.4); color: var(--accent-2); }
+}
+
+.hud b {
+  display: inline-block;
+}
+
+.hud b.bump {
+  animation: bump 0.25s ease;
 }
 
 .overlay p { color: var(--muted); }
@@ -84,8 +122,9 @@ button {
   background: var(--accent);
   color: #fff;
   cursor: pointer;
+  animation: pulse 1.6s ease-in-out infinite;
 }
 
-button:hover { filter: brightness(1.1); }
+button:hover { filter: brightness(1.15); }
 
-.hint { font-size: 14px; }
+.hint { font-size: 13px; }
