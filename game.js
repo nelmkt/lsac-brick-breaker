@@ -35,37 +35,6 @@ var topics = [
 ];
 var bug = { name: "Bug", label: "BUG", color: "#e5484d", points: 2 };
 
-var tips = {
-    Cloud: [
-        "Cloud means renting computers on demand instead of buying them.",
-        "Microsoft Learn has free Azure Fundamentals (AZ-900) learning paths.",
-        "Serverless means you write the code and the cloud runs the servers."
-    ],
-    Code: [
-        "Git tracks every change, so commit early and often.",
-        "VS Code is free and works with almost any language.",
-        "Reading other people's code is a skill too. Practice it."
-    ],
-    Data: [
-        "SQL is still one of the most in-demand skills.",
-        "Clean data beats a fancy model almost every time.",
-        "Power BI turns spreadsheets into dashboards."
-    ],
-    AI: [
-        "A model is only as good as the data it learned from.",
-        "Prompting is a skill: be clear and give examples.",
-        "Always check AI output, it can be confidently wrong."
-    ],
-    Security: [
-        "Turn on two-factor authentication everywhere you can.",
-        "Never commit passwords or API keys to GitHub.",
-        "Least privilege: only give access to what's needed."
-    ],
-    Bug: [
-        "Bug squashed! Reading the error message is step one of debugging.",
-        "Bug squashed! Rubber duck debugging: explain your code out loud."
-    ]
-};
 
 var x, y, dx, dy, paddleX;
 var rightPressed = false;
@@ -74,8 +43,8 @@ var bricks = [];
 var score = 0;
 var lives = 3;
 var level = 1;
-var tip = "";
-var tipUntil = 0;
+var message = "";
+var messageUntil = 0;
 var running = false;
 
 document.addEventListener("keydown", keyDownHandler);
@@ -133,21 +102,16 @@ function updateHud() {
     livesEl.textContent = lives;
 }
 
-function showTip(text) {
-    tip = text;
-    tipUntil = performance.now() + 2500;
-}
-
-function randomTip(topic) {
-    var list = tips[topic.name];
-    return list[Math.floor(Math.random() * list.length)];
+function showMessage(text) {
+    message = text;
+    messageUntil = performance.now() + 2000;
 }
 
 function startGame() {
     score = 0;
     lives = 3;
     level = 1;
-    tip = "";
+    message = "";
     buildBricks();
     resetBall();
     updateHud();
@@ -161,7 +125,7 @@ function nextLevel() {
     buildBricks();
     resetBall();
     updateHud();
-    showTip("Level " + level + "! The ball is getting faster.");
+    showMessage("Level " + level + "! The ball is getting faster.");
 }
 
 function endGame() {
@@ -187,7 +151,6 @@ function collisionDetection() {
                 b.status = 0;
                 score += b.topic.points;
                 updateHud();
-                showTip(randomTip(b.topic));
                 if(bricksLeft() == 0) {
                     nextLevel();
                     return;
@@ -238,8 +201,8 @@ function drawBricks() {
     });
 }
 
-function drawTip() {
-    if(!tip || performance.now() > tipUntil) return;
+function drawMessage() {
+    if(!message || performance.now() > messageUntil) return;
     var boxY = canvas.height - 90;
     ctx.beginPath();
     ctx.roundRect(20, boxY, canvas.width - 40, 40, 8);
@@ -247,7 +210,7 @@ function drawTip() {
     ctx.fill();
     ctx.fillStyle = "#ffffff";
     ctx.font = "13px Segoe UI, sans-serif";
-    ctx.fillText(tip, canvas.width/2, boxY + 20, canvas.width - 60);
+    ctx.fillText(message, canvas.width/2, boxY + 20, canvas.width - 60);
 }
 
 function draw() {
@@ -256,7 +219,7 @@ function draw() {
     drawBricks();
     drawBall();
     drawPaddle();
-    drawTip();
+    drawMessage();
     collisionDetection();
 
     if(x + dx > canvas.width-ballRadius || x + dx < ballRadius) {
