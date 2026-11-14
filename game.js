@@ -1,3 +1,119 @@
+// Sound effects: one reusable Web Audio voice per effect, unlocked by interaction.
+var gameSound = (function () {
+    "use strict";
+    var toggle = document.getElementById("soundToggle");
+    var storageKey = "lsac_bug_breaker_sound";
+    var enabled = true;
+    var context = null;
+    var loading = null;
+    var generation = 0;
+    var effects = {
+        // This recording has about 0.26 seconds of leading silence.
+        brick: {path:"Effects/BrickHit.mp3", volume:0.3, offset:0.25, duration:0.18},
+        click: {path:"Effects/Click.wav", volume:0.3, duration:0.15},
+        heart: {path:"Effects/LostAHeart.mp3", volume:0.45},
+        lost: {path:"Effects/Lost.mp3", volume:0.45},
+        paddle: {path:"Effects/PaddleBounce.mp3", volume:0.25, duration:0.14},
+        won: {path:"Effects/Won.mp3", volume:0.4}
+    };
+    try { enabled = localStorage.getItem(storageKey) !== "off"; } catch (error) {}
+
+    // Fetch early; decode and resume the audio context inside the first gesture.
+    Object.keys(effects).forEach(function (name) {
+        var effect = effects[name];
+        effect.data = fetch(effect.path).then(function (response) {
+            if (!response.ok) throw new Error("Audio unavailable");
+            return response.arrayBuffer();
+        }).catch(function () { return null; });
+    });
+
+    function updateToggle() {
+        toggle.textContent = enabled ? "SOUND ON" : "SOUND OFF";
+        toggle.setAttribute("aria-pressed", String(enabled));
+    }
+    function unlock() {
+        if (!enabled) return;
+        try {
+            var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return;
+            if (!context) context = new AudioContextClass();
+            if (context.state !== "running") context.resume().catch(function () {});
+            if (!loading) {
+                loading = Promise.all(Object.keys(effects).map(function (name) {
+                    var effect = effects[name];
+                    return effect.data.then(function (data) {
+                        if (!data) return;
+                        return context.decodeAudioData(data).then(function (buffer) {
+                            effect.buffer = buffer;
+                        });
+                    }).catch(function () {});
+                }));
+            }
+        } catch (error) { /* Unavailable audio must never interrupt gameplay. */ }
+    }
+    function stop(name) {
+        var effect = effects[name];
+        if (effect.source) {
+            try { effect.source.stop(); } catch (error) {}
+            effect.source.disconnect();
+            effect.gain.disconnect();
+            effect.source = null;
+        }
+    }
+    function play(name) {
+        if (!enabled) return;
+        unlock();
+        if (!context || !loading) return;
+        var requested = performance.now();
+        var version = generation;
+        loading.then(function () {
+            var effect = effects[name];
+            // Drop delayed events instead of playing a backlog after loading/unmuting.
+            if (!enabled || version !== generation || context.state !== "running" ||
+                !effect.buffer || performance.now() - requested > 250) return;
+            // Brick contacts are deduplicated in collisionDetection, not by a time gate.
+            if (name !== "brick" && effect.lastPlayed !== undefined && requested - effect.lastPlayed < 16) return;
+            effect.lastPlayed = requested;
+            if (name === "heart" || name === "lost") { stop("heart"); stop("lost"); }
+            stop(name);
+            var source = context.createBufferSource();
+            var gain = context.createGain();
+            var offset = effect.offset || 0;
+            var duration = Math.min(effect.buffer.duration - offset, effect.duration || effect.buffer.duration);
+            var now = context.currentTime;
+            source.buffer = effect.buffer;
+            gain.gain.setValueAtTime(effect.volume, now);
+            gain.gain.setValueAtTime(effect.volume, now + Math.max(0, duration - 0.015));
+            gain.gain.linearRampToValueAtTime(0, now + duration);
+            source.connect(gain);
+            gain.connect(context.destination);
+            effect.source = source;
+            effect.gain = gain;
+            source.onended = function () {
+                source.disconnect();
+                gain.disconnect();
+                if (effect.source === source) effect.source = null;
+            };
+            source.start(now, offset, duration);
+        }).catch(function () {});
+    }
+    toggle.addEventListener("click", function () {
+        enabled = !enabled;
+        generation++;
+        if (!enabled) Object.keys(effects).forEach(stop);
+        try { localStorage.setItem(storageKey, enabled ? "on" : "off"); } catch (error) {}
+        updateToggle();
+        if (enabled) play("click");
+    });
+    document.addEventListener("pointerdown", unlock, true);
+    document.addEventListener("keydown", unlock, true);
+    document.addEventListener("click", function (event) {
+        if (event.target.closest("button") && !event.target.closest("#soundToggle")) play("click");
+    }, true);
+    updateToggle();
+    return {play:play};
+})();
+
 // Leaderboard UI: local preview until a shared database is connected.
 (function () {
     "use strict";
@@ -314,6 +430,9 @@ function collisionDetection() {
         for(var r=0; r<brickRowCount; r++) {
             var b = bricks[c][r];
             if(b.status == 1 && x > b.x && x < b.x+brickWidth && y > b.y && y < b.y+brickHeight) {
+                // One sound per contact, including hits that leave a brick intact.
+                if(!b.soundContact) gameSound.play("brick");
+                b.soundContact = true;
                 dy = -dy;
                 b.hits--;
                 b.flash = 8;
@@ -321,15 +440,19 @@ function collisionDetection() {
                 b.status = 0;
                 breakBrick(b);
                 if(bricksLeft() == 0) {
+                    gameSound.play("won");
                     nextLevel();
                     return;
                 }
+            } else {
+                b.soundContact = false;
             }
         }
     }
 }
 
 function bounceOffPaddle() {
+    gameSound.play("paddle");
     var hit = (x - (paddleX + paddleWidth/2)) / (paddleWidth/2);
     var angle = hit * Math.PI / 3;
     var speed = ballSpeed();
@@ -343,9 +466,11 @@ function loseLife() {
     shake = 15;
     updateHud();
     if(!lives) {
+        gameSound.play("lost");
         endGame();
         return;
     }
+    gameSound.play("heart");
     resetBall();
 }
 
