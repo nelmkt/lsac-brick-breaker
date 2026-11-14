@@ -1,12 +1,8 @@
 // Sound effects: one reusable Web Audio voice per effect, unlocked by interaction.
 var gameSound = (function () {
     "use strict";
-    var toggle = document.getElementById("soundToggle");
-    var storageKey = "lsac_bug_breaker_sound";
-    var enabled = true;
     var context = null;
     var loading = null;
-    var generation = 0;
     var effects = {
         // This recording has about 0.26 seconds of leading silence.
         brick: {path:"Effects/BrickHit.mp3", volume:0.3, offset:0.25, duration:0.18},
@@ -16,7 +12,8 @@ var gameSound = (function () {
         paddle: {path:"Effects/PaddleBounce.mp3", volume:0.25, duration:0.14},
         won: {path:"Effects/Won.mp3", volume:0.4}
     };
-    try { enabled = localStorage.getItem(storageKey) !== "off"; } catch (error) {}
+    // Clear the retired mute preference; effects are always enabled after interaction.
+    try { localStorage.removeItem("lsac_bug_breaker_sound"); } catch (error) {}
 
     // Fetch early; decode and resume the audio context inside the first gesture.
     Object.keys(effects).forEach(function (name) {
@@ -27,29 +24,48 @@ var gameSound = (function () {
         }).catch(function () { return null; });
     });
 
-    function updateToggle() {
-        toggle.textContent = enabled ? "SOUND ON" : "SOUND OFF";
-        toggle.setAttribute("aria-pressed", String(enabled));
+    function setAudioSession(type) {
+        try {
+            if (navigator.audioSession && navigator.audioSession.type !== type) {
+                navigator.audioSession.type = type;
+            }
+        } catch (error) { /* Optional API; desktop playback must not depend on it. */ }
     }
     function unlock() {
-        if (!enabled) return;
         try {
             var AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContextClass) return;
+            if (!AudioContextClass) return Promise.resolve();
+            setAudioSession("playback");
+            var needsPrime = !context || context.state !== "running";
             if (!context) context = new AudioContextClass();
-            if (context.state !== "running") context.resume().catch(function () {});
+            // Invoke resume and start a silent buffer synchronously in the tap handler.
+            // Fetch/decode callbacks alone cannot reliably unlock iPhone audio output.
+            var resumed = context.state === "running" ? Promise.resolve() : context.resume();
+            if (needsPrime) {
+                var primer = context.createBufferSource();
+                primer.buffer = context.createBuffer(1, 1, context.sampleRate);
+                primer.connect(context.destination);
+                primer.onended = function () { primer.disconnect(); };
+                primer.start(0);
+            }
             if (!loading) {
                 loading = Promise.all(Object.keys(effects).map(function (name) {
                     var effect = effects[name];
-                    return effect.data.then(function (data) {
+                    effect.ready = effect.data.then(function (data) {
                         if (!data) return;
                         return context.decodeAudioData(data).then(function (buffer) {
                             effect.buffer = buffer;
                         });
                     }).catch(function () {});
+                    return effect.ready;
                 }));
             }
-        } catch (error) { /* Unavailable audio must never interrupt gameplay. */ }
+            return Promise.resolve(resumed).catch(function () {});
+        } catch (error) {
+            // Also handle a rejected resume if a later initialization step threw.
+            if (resumed) Promise.resolve(resumed).catch(function () {});
+            return Promise.resolve();
+        }
     }
     function stop(name) {
         var effect = effects[name];
@@ -61,15 +77,14 @@ var gameSound = (function () {
         }
     }
     function play(name) {
-        if (!enabled) return;
-        unlock();
+        var resumed = unlock();
         if (!context || !loading) return;
         var requested = performance.now();
-        var version = generation;
-        loading.then(function () {
+        // Wait for this effect and the resume operation, not all six downloads.
+        Promise.all([effects[name].ready, resumed]).then(function () {
             var effect = effects[name];
-            // Drop delayed events instead of playing a backlog after loading/unmuting.
-            if (!enabled || version !== generation || context.state !== "running" ||
+            // Drop delayed events instead of playing a backlog after loading/resuming.
+            if (context.state !== "running" ||
                 !effect.buffer || performance.now() - requested > 250) return;
             // Brick contacts are deduplicated in collisionDetection, not by a time gate.
             if (name !== "brick" && effect.lastPlayed !== undefined && requested - effect.lastPlayed < 16) return;
@@ -97,20 +112,21 @@ var gameSound = (function () {
             source.start(now, offset, duration);
         }).catch(function () {});
     }
-    toggle.addEventListener("click", function () {
-        enabled = !enabled;
-        generation++;
-        if (!enabled) Object.keys(effects).forEach(stop);
-        try { localStorage.setItem(storageKey, enabled ? "on" : "off"); } catch (error) {}
-        updateToggle();
-        if (enabled) play("click");
-    });
     document.addEventListener("pointerdown", unlock, true);
+    document.addEventListener("touchend", unlock, true);
     document.addEventListener("keydown", unlock, true);
     document.addEventListener("click", function (event) {
-        if (event.target.closest("button") && !event.target.closest("#soundToggle")) play("click");
+        unlock();
+        if (event.target.closest("button")) play("click");
     }, true);
-    updateToggle();
+    // Safari can interrupt audio after a tab switch or screen lock. Retry on return;
+    // gesture listeners remain installed if the browser requires another tap.
+    document.addEventListener("visibilitychange", function () {
+        if (!document.hidden && context) unlock();
+    });
+    window.addEventListener("pageshow", function () {
+        if (context) unlock();
+    });
     return {play:play};
 })();
 

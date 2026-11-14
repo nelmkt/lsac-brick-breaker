@@ -14,7 +14,7 @@
 
 /* Mobile arcade presentation: keep the desktop design and game intact. */
 @media (max-width: 600px) {
-  body { display:block; min-height:100svh; }
+  body { display:flex; flex-direction:column; min-height:100svh; }
   .wrap { width: min(100% - 20px, 480px); margin: 55px auto 20px; padding: 0; }
 
   .arcade-frame { padding: 10px; border: 2px solid var(--cyan); border-radius: 17px; box-shadow: 0 0 10px var(--cyan), 0 0 22px var(--blue); }
@@ -56,29 +56,23 @@
 .leaderboard-screen.hidden { display:none !important; }
 @media (max-width:600px) { .leaderboard-screen:not(.hidden) { padding:16px; } .leaderboard-panel { max-height:calc(100dvh - 32px); overflow-y:auto; } }
 
-/* Independent control: preserve the frame and entry-panel layout. */
-.sound-toggle {
-  position:fixed;
-  top:max(8px,env(safe-area-inset-top));
-  right:max(12px,env(safe-area-inset-right));
-  z-index:10000;
-  min-width:104px;
-  min-height:44px;
-  padding:10px 12px;
-  border:2px solid var(--cyan);
-  background:var(--panel);
-  color:var(--cyan);
-  font-size:9px;
-  box-shadow:0 0 8px #00cfff50;
-}
-.sound-toggle[aria-pressed="true"] { background:#003cff; color:var(--text); }
-.sound-toggle:focus-visible { outline:2px solid var(--gold); outline-offset:3px; }
-
 .leaderboard-winners {
   display:block;
-  width:min(160px,60%);
+  width:min(132px,49.5%);
   height:auto;
-  max-height:140px;
+  max-height:116px;
   object-fit:contain;
   margin:12px auto 6px;
+}
+
+/* Keep the footer in normal flow, below the game and clear of the canvas. */
+body { grid-template-rows:1fr auto; }
+.page-footer {
+  width:100%;
+  margin-top:auto;
+  padding:12px 12px max(12px,env(safe-area-inset-bottom));
+  text-align:center;
+  color:#7893be;
+  font-size:clamp(13px,3.5vw,16px);
+  line-height:1.4;
 }
