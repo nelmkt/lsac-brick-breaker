@@ -119,7 +119,6 @@ var gameSound = (function () {
     "use strict";
     var screen = document.getElementById("leaderboardScreen");
     var body = document.getElementById("leaderboardBody");
-    var status = document.getElementById("leaderboardStatus");
     var back = document.getElementById("backToGame");
     var storageKey = "lsac_bug_breaker_preview_scores";
     var previousFocus = null;
@@ -157,7 +156,6 @@ var gameSound = (function () {
             });
             body.appendChild(row);
         });
-        status.textContent = "PREVIEW ONLY — SCORES SAVED ON THIS DEVICE";
     }
     function submit(name, score, level) {
         try {
